@@ -309,6 +309,71 @@ int TestParamDefine() {
   return ret;
 }
 
+#define STRING_MACRO_A "aaa"
+#define STRING_MACRO_B "bbb"
+#define STRING_MACRO_C "aaa"
+#define STRING_MACRO_D "bbb"
+#define STRING_MACRO_AB "aaabbb"
+#define STRING_MACRO_CD "aaabbb"
+#define STRINGIFY_MACRO(x) #x
+#define CONCAT_MACRO(x, y) x ## y
+
+int TestStringLiterals() {
+  int ret = 0;
+  // Expected: Negative cases
+  ret += ("aaa" STRING_MACRO_A == "aaabbb");
+  ret += ("aaa" STRING_MACRO_B != "aaabbb");
+  // CHECK-MESSAGES: :[[@LINE-1]]:32: warning: both sides of operator are equivalent
+  ret += (STRING_MACRO_AB == "aaabbb");
+  // CHECK-MESSAGES: :[[@LINE-1]]:27: warning: both sides of operator are equivalent
+  ret += ("aaabbb" == "aaa" STRING_MACRO_B);
+  // CHECK-MESSAGES: :[[@LINE-1]]:20: warning: both sides of operator are equivalent
+  ret += ("aaabbb" != "aaa" STRING_MACRO_B);
+  // CHECK-MESSAGES: :[[@LINE-1]]:20: warning: both sides of operator are equivalent
+  ret += (STRINGIFY_MACRO(STRING_MACRO_A) == "STRING_MACRO_A");
+  // CHECK-MESSAGES: :[[@LINE-1]]:43: warning: both sides of operator are equivalent
+  ret += (STRINGIFY_MACRO(STRING_MACRO_A) == "STRING_" "MACRO_A");
+  // CHECK-MESSAGES: :[[@LINE-1]]:43: warning: both sides of operator are equivalent
+  ret += (CONCAT_MACRO(STRING_MACRO_A, B) == "aaabbb");
+  // CHECK-MESSAGES: :[[@LINE-1]]:43: warning: both sides of operator are equivalent
+  ret += (CONCAT_MACRO(STRING_MACRO_A, B) == CONCAT_MACRO(STRING_MACRO_C, D));
+  // CHECK-MESSAGES: :[[@LINE-1]]:43: warning: both sides of operator are equivalent
+  ret += (STRING_MACRO_A "bbb" == STRING_MACRO_A STRING_MACRO_B);
+  // CHECK-MESSAGES: :[[@LINE-1]]:32: warning: both sides of operator are equivalent
+  ret += ("aaa" STRING_MACRO_B == STRING_MACRO_A STRING_MACRO_B);
+  // CHECK-MESSAGES: :[[@LINE-1]]:32: warning: both sides of operator are equivalent
+  ret += (STRING_MACRO_A STRING_MACRO_B == STRING_MACRO_A STRING_MACRO_D);
+  // CHECK-MESSAGES: :[[@LINE-1]]:41: warning: both sides of operator are equivalent
+  ret += (STRING_MACRO_A STRING_MACRO_B == STRING_MACRO_C STRING_MACRO_B);
+  // CHECK-MESSAGES: :[[@LINE-1]]:41: warning: both sides of operator are equivalent
+  ret += (STRING_MACRO_A STRING_MACRO_B == STRING_MACRO_C STRING_MACRO_D);
+  // CHECK-MESSAGES: :[[@LINE-1]]:41: warning: both sides of operator are equivalent
+
+
+  // Positive cases
+  ret += (CONCAT_MACRO(STRING_MACRO_A, B) == CONCAT_MACRO(STRING_MACRO_A, B) );
+  // CHECK-MESSAGES: :[[@LINE-1]]:43: warning: both sides of operator are equivalent
+  ret += ( CONCAT_MACRO( STRING_MACRO_A, B) == CONCAT_MACRO(STRING_MACRO_A, B) );
+  // CHECK-MESSAGES: :[[@LINE-1]]:45: warning: both sides of operator are equivalent
+  ret += (STRINGIFY_MACRO(STRING_MACRO_A) == STRINGIFY_MACRO(STRING_MACRO_A));
+  // CHECK-MESSAGES: :[[@LINE-1]]:43: warning: both sides of operator are equivalent
+  ret += ("aaa" STRING_MACRO_B == "aaa" STRING_MACRO_B);
+  // CHECK-MESSAGES: :[[@LINE-1]]:32: warning: both sides of operator are equivalent
+  ret += (STRING_MACRO_A "bbb" == STRING_MACRO_A "bbb");
+  // CHECK-MESSAGES: :[[@LINE-1]]:32: warning: both sides of operator are equivalent
+  ret += (STRING_MACRO_A STRING_MACRO_B == STRING_MACRO_A STRING_MACRO_B);
+  // CHECK-MESSAGES: :[[@LINE-1]]:41: warning: both sides of operator are equivalent
+  ret += ("aaa" "bbb" == "aaa" "bbb");
+  // CHECK-MESSAGES: :[[@LINE-1]]:23: warning: both sides of operator are equivalent
+  ret += ("aaabbb" == "aaa" "bbb");
+  // CHECK-MESSAGES: :[[@LINE-1]]:20: warning: both sides of operator are equivalent
+  ret += ("a" "a" "abbb" == "aaa" "bbb");
+  // CHECK-MESSAGES: :[[@LINE-1]]:26: warning: both sides of operator are equivalent
+
+  return ret;
+}
+
+
 template <int DX>
 int TestSimpleEquivalentDependent() {
   if (DX > 0 && DX > 0) return 1;
