@@ -1072,7 +1072,7 @@ approximateStandardConversionSequence(const TheCheck &Check, QualType From,
     WorkType = To;
   }
 
-  if (Ctx.hasSameType(WorkType, To) && WorkType == To) {
+  if (WorkType == To) {
     LLVM_DEBUG(llvm::dbgs() << "<<< approximateStdConv. Reached 'To' type.\n");
     return {WorkType};
   }
