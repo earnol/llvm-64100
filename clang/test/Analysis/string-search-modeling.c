@@ -510,3 +510,73 @@ void test_strpbrk_accept_embedded_null(void) {
   // Accept "a\0b" is truncated to "a"; 'a' is not in "xb", so result is null.
   clang_analyzer_eval(strpbrk("xb", "a\0b") == 0); // expected-warning {{TRUE}}
 }
+
+// --- Wide string cast to char*: resolved via raw bytes ---
+const __CHAR16_TYPE__ wide_str_global[] = u"abc";
+void test_strchr_wide_string_global(void) {
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
+  // LE: bytes are 'a',0,'b',0,... — CStr is "a", strchr finds 'a' at offset 0.
+  clang_analyzer_eval(strchr((const char *)wide_str_global, 'a') == (const char *)wide_str_global); // expected-warning {{TRUE}}
+#else
+  // BE: bytes are 0,'a',0,'b',... — first byte is null, CStr is empty.
+  clang_analyzer_eval(strchr((const char *)wide_str_global, 'a') == 0); // expected-warning {{TRUE}}
+#endif
+}
+
+void test_strchr_wide_string_local(void) {
+  const __CHAR16_TYPE__ w[] = u"abc";
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
+  // LE: same as global — finds 'a' at offset 0.
+  clang_analyzer_eval(strchr((const char *)w, 'a') == (const char *)w); // expected-warning {{TRUE}}
+#else
+  // BE: first byte is null, CStr is empty.
+  clang_analyzer_eval(strchr((const char *)w, 'a') == 0); // expected-warning {{TRUE}}
+#endif
+}
+
+// --- Wide string with 4-byte characters (UTF-32) ---
+const __CHAR32_TYPE__ wide32_global[] = U"abc";
+void test_strchr_wide32_string(void) {
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
+  // LE: U"abc" bytes are 'a',0,0,0,'b',0,0,0,...  CStr is "a".
+  clang_analyzer_eval(strchr((const char *)wide32_global, 'a') == (const char *)wide32_global); // expected-warning {{TRUE}}
+#else
+  // BE: bytes are 0,0,0,'a',... — first byte is null, CStr is empty.
+  clang_analyzer_eval(strchr((const char *)wide32_global, 'a') == 0); // expected-warning {{TRUE}}
+#endif
+}
+
+// --- Wide string as needle argument ---
+const __CHAR16_TYPE__ wide_needle[] = u"lo";
+void test_strstr_wide_needle(void) {
+  const char *s = "hello";
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
+  // LE: u"lo" bytes are 'l',0,'o',0,0,0 — getCStr gives "l".
+  // strstr("hello", "l") finds 'l' at offset 2.
+  clang_analyzer_eval(strstr(s, (const char *)wide_needle) == s + 2); // expected-warning {{TRUE}}
+#else
+  // BE: bytes are 0,'l',0,'o',... — CStr is empty, strstr returns haystack.
+  clang_analyzer_eval(strstr(s, (const char *)wide_needle) == s); // expected-warning {{TRUE}}
+#endif
+}
+
+// --- Struct cast to char* ---
+struct FourChars {
+  char a, b, c, d;
+};
+void test_strchr_struct_cast(void) {
+  // TODO: resolve const struct initializers (no padding between char members).
+  struct FourChars s = {'h', 'e', 'l', 'l'};
+  clang_analyzer_eval(strchr((const char *)&s, 'e') == 0); // expected-warning {{TRUE}} expected-warning {{FALSE}}
+}
+
+// --- Union with wide and narrow access ---
+union CharUnion {
+  __CHAR16_TYPE__ w[4];
+  char c[8];
+};
+const union CharUnion cu = { .w = u"abc" };
+void test_strchr_union_narrow_access(void) {
+  // TODO: resolve union members with known initializers.
+  clang_analyzer_eval(strchr(cu.c, 'a') == 0); // expected-warning {{TRUE}} expected-warning {{FALSE}}
+}

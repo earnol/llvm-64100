@@ -1050,7 +1050,7 @@ CStringChecker::getStringLiteralFromRegion(const MemRegion *MR) {
     return cast<StringRegion>(MR)->getStringLiteral();
   case MemRegion::NonParamVarRegionKind:
     if (const VarDecl *Decl = cast<NonParamVarRegion>(MR)->getDecl();
-        Decl->getType().isConstQualified() && Decl->hasGlobalStorage())
+        Decl->getType().isConstQualified())
       return dyn_cast_or_null<StringLiteral>(Decl->getInit());
     return nullptr;
   default:
@@ -1075,7 +1075,7 @@ CStringChecker::getStringRefAtRegion(const MemRegion *R) {
   const StringLiteral *Lit = getStringLiteralFromRegion(Base);
   if (!Lit)
     return std::nullopt;
-  StringRef S = Lit->getString();
+  StringRef S = Lit->getBytes();
   if (Offset > S.size())
     return std::nullopt;
   return S.substr(Offset);
