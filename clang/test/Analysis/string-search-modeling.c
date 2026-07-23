@@ -499,3 +499,14 @@ void test_strchrnul_found_with_offset(void) {
   // ss is "xxhello", 'l' is at index 4 in "xxhello", so ss + 4 == s + 5.
   clang_analyzer_eval(strchrnul(ss, 'l') == s + 5); // expected-warning {{TRUE}}
 }
+
+// --- Embedded null in the needle/accept set argument ---
+void test_strstr_needle_embedded_null(void) {
+  // Needle "cd\0e" is truncated to "cd" by C semantics; "cd" is in "abcd".
+  clang_analyzer_eval(strstr("abcd", "cd\0e") == 0); // expected-warning {{FALSE}}
+}
+
+void test_strpbrk_accept_embedded_null(void) {
+  // Accept "a\0b" is truncated to "a"; 'a' is not in "xb", so result is null.
+  clang_analyzer_eval(strpbrk("xb", "a\0b") == 0); // expected-warning {{TRUE}}
+}

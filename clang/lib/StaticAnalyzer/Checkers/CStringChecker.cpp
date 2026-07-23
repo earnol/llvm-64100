@@ -2789,7 +2789,8 @@ void CStringChecker::evalStrstr(CheckerContext &C,
     if (!Needle)
       return std::nullopt;
     StringRef CStr = getCStr(Haystack);
-    return Needle->empty() ? size_t{0} : CStr.find(*Needle);
+    StringRef CNeedle = getCStr(*Needle);
+    return CNeedle.empty() ? size_t{0} : CStr.find(CNeedle);
   };
   evalStrchrCommon(C, Call, /*CanReturnNull=*/true,
                    computeStringOffset(C, Call, Search));
@@ -2804,7 +2805,7 @@ void CStringChecker::evalStrpbrk(CheckerContext &C,
     auto Accept = CStringChecker::getStringRefAtRegion(Arg1Val.getAsRegion());
     if (!Accept)
       return std::nullopt;
-    return getCStr(Haystack).find_first_of(*Accept);
+    return getCStr(Haystack).find_first_of(getCStr(*Accept));
   };
   evalStrchrCommon(C, Call, /*CanReturnNull=*/true,
                    computeStringOffset(C, Call, Search));
